@@ -11,6 +11,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@score_baselibs//:bazel/unit_tests.bzl", "cc_unit_test_suites_for_host_and_qnx")
 load("@score_baselibs//score/language/safecpp:toolchain_features.bzl", "COMPILER_WARNING_FEATURES")
 
@@ -108,7 +109,6 @@ cc_test(
         "alternating_writer",
         "read_only_reader",
         "//score/mw/log/test/console_logging_environment",
-        "//third_party/libatomic",
         "@googletest//:gtest_main",
     ],
 )
