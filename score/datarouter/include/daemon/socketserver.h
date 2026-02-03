@@ -27,6 +27,40 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
+
+// Forward declaration for testing
+namespace score
+{
+namespace mw
+{
+namespace log
+{
+namespace detail
+{
+class ConnectMessageFromClient;
+}
+}  // namespace log
+}  // namespace mw
+}  // namespace score
+
+namespace score
+{
+namespace os
+{
+class Pthread;
+}  // namespace os
+}  // namespace score
+
+#ifdef __QNX__
+#include "score/message_passing/qnx_dispatch/qnx_dispatch_client_factory.h"
+#include "score/message_passing/qnx_dispatch/qnx_dispatch_engine.h"
+#include "score/message_passing/qnx_dispatch/qnx_dispatch_server_factory.h"
+#else
+#include "score/message_passing/unix_domain/unix_domain_client_factory.h"
+#include "score/message_passing/unix_domain/unix_domain_engine.h"
+#include "score/message_passing/unix_domain/unix_domain_server_factory.h"
+#endif
 
 namespace score
 {
@@ -34,6 +68,14 @@ namespace platform
 {
 namespace datarouter
 {
+
+#ifdef __QNX__
+using ServerFactory = score::message_passing::QnxDispatchServerFactory;
+using ClientFactory = score::message_passing::QnxDispatchClientFactory;
+#else
+using ServerFactory = score::message_passing::UnixDomainServerFactory;
+using ClientFactory = score::message_passing::UnixDomainClientFactory;
+#endif
 
 class SocketServer
 {
@@ -50,6 +92,57 @@ class SocketServer
         static SocketServer server;
         server.doWork(exit_requested, no_adaptive_runtime);
     }
+    //  static void run(const std::atomic_bool& exit_requested, const bool no_adaptive_runtime);
+
+    /// @internal Test helpers - do not use in production code
+
+    static PersistentStorageHandlers InitializePersistentStorage(
+        std::unique_ptr<IPersistentDictionary>& persistent_dictionary);
+
+    static std::unique_ptr<score::logging::dltserver::DltLogServer> CreateDltServer(
+        const PersistentStorageHandlers& storage_handlers);
+
+    static DataRouter::SourceSetupCallback CreateSourceSetupHandler(score::logging::dltserver::DltLogServer& dlt_server);
+
+    // Static helper functions for testing lambda bodies
+    static void UpdateParserHandlers(score::logging::dltserver::DltLogServer& dlt_server,
+                                     score::platform::internal::ILogParser& parser,
+                                     bool enable);
+
+    static void UpdateHandlersFinal(score::logging::dltserver::DltLogServer& dlt_server, bool enable);
+
+    static std::unique_ptr<score::platform::internal::UnixDomainServer::ISession> CreateConfigSession(
+        score::logging::dltserver::DltLogServer& dlt_server,
+        score::platform::internal::UnixDomainServer::SessionHandle handle);
+
+    static std::function<void(bool)> CreateEnableHandler(DataRouter& router,
+                                                         IPersistentDictionary& persistent_dictionary,
+                                                         score::logging::dltserver::DltLogServer& dlt_server);
+
+    static std::unique_ptr<score::platform::internal::UnixDomainServer> CreateUnixDomainServer(
+        score::logging::dltserver::DltLogServer& dlt_server);
+
+    static std::unique_ptr<score::platform::internal::MessagePassingServer::ISession> CreateMessagePassingSession(
+        DataRouter& router,
+        score::logging::dltserver::DltLogServer& dlt_server,
+        const score::mw::log::NvConfig& nv_config,
+        const pid_t client_pid,
+        const score::mw::log::detail::ConnectMessageFromClient& conn,
+        score::cpp::pmr::unique_ptr<score::platform::internal::daemon::ISessionHandle> handle);
+
+    static score::mw::log::NvConfig LoadNvConfig(
+        score::mw::log::Logger& stats_logger,
+        const std::string& config_path = "/bmw/platform/opt/datarouter/etc/class-id.json");
+
+    static void RunEventLoop(const std::atomic_bool& exit_requested,
+                             DataRouter& router,
+                             score::logging::dltserver::DltLogServer& dlt_server,
+                             score::mw::log::Logger& stats_logger);
+    // Testable helper functions
+    static void SetThreadName() noexcept;
+    static void SetThreadName(score::os::Pthread& pthread_instance) noexcept;
+    static std::string ResolveSharedMemoryFileName(const score::mw::log::detail::ConnectMessageFromClient& conn,
+                                                   const std::string& appid);
 
     static PersistentStorageHandlers InitializePersistentStorage(
         std::unique_ptr<IPersistentDictionary>& persistent_dictionary);

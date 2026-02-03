@@ -26,7 +26,7 @@ cc_library(
     visibility = ["//score/datarouter:__subpackages__"],
     deps = [
         "//score/datarouter:log",
-        "//score/datarouter/persistent_logging:sysedr_factory",
-        "//score/datarouter/persistent_logging:sysedr_handler_interface",
+        "//score/datarouter/src/persistent_logging:sysedr_factory",
+        "//score/datarouter/src/persistent_logging:sysedr_handler_interface",
     ],
 )
